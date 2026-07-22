@@ -7,6 +7,7 @@ from typing import AsyncIterator
 import structlog
 from fastapi import FastAPI
 
+from hybrid_monitor.api.v1.router import router as api_v1_router
 from hybrid_monitor.core.logging import configure_logging
 from hybrid_monitor.core.settings import get_settings
 
@@ -40,6 +41,8 @@ app = FastAPI(
     openapi_url=f"{settings.api_prefix}/openapi.json",
     lifespan=lifespan,
 )
+
+app.include_router(api_v1_router, prefix=settings.api_prefix)
 
 
 @app.get("/health", tags=["system"])
