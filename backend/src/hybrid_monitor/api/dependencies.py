@@ -3,17 +3,19 @@
 from collections.abc import AsyncIterator
 
 from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from hybrid_monitor.core.session import session_scope
 
 
 async def get_request_id(request: Request) -> str:
     """Return the request identifier assigned by the middleware."""
+
     return getattr(request.state, "request_id", "")
 
 
-async def get_db_session() -> AsyncIterator[None]:
-    """Placeholder database session dependency.
+async def get_db_session() -> AsyncIterator[AsyncSession]:
+    """Yield a transactional SQLAlchemy session for the current request."""
 
-    This will be replaced by the SQLAlchemy Async session provider
-    during the persistence implementation.
-    """
-    yield None
+    async for session in session_scope():
+        yield session
