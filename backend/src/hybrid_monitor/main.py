@@ -7,6 +7,7 @@ from typing import AsyncIterator
 import structlog
 from fastapi import FastAPI
 
+from hybrid_monitor.api.exceptions import register_exception_handlers
 from hybrid_monitor.api.middleware import RequestContextMiddleware
 from hybrid_monitor.api.v1.router import router as api_v1_router
 from hybrid_monitor.core.logging import configure_logging
@@ -44,6 +45,7 @@ app = FastAPI(
 )
 
 app.add_middleware(RequestContextMiddleware)
+register_exception_handlers(app)
 app.include_router(api_v1_router, prefix=settings.api_prefix)
 
 
