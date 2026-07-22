@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     port: int = 8000
     log_level: str = "INFO"
 
+    database_url: str = "postgresql+asyncpg://phoenix:phoenix@localhost:5432/phoenix"
+    database_echo: bool = False
+    database_pool_size: int = 10
+    database_max_overflow: int = 20
+    database_pool_timeout: int = 30
+
     model_config = SettingsConfigDict(
         env_prefix="PHOENIX_",
         env_file=".env",
