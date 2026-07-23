@@ -1,12 +1,18 @@
 """User ORM model."""
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from hybrid_monitor.db import Base
+from hybrid_monitor.domain.identity.models.association import user_roles
+
+if TYPE_CHECKING:
+    from hybrid_monitor.domain.identity.models.audit_log import AuditLog
+    from hybrid_monitor.domain.identity.models.role import Role
 
 
 class User(Base):
@@ -29,4 +35,14 @@ class User(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
         nullable=False,
+    )
+
+    roles: Mapped[list["Role"]] = relationship(
+        secondary=user_roles,
+        back_populates="users",
+        lazy="selectin",
+    )
+    audit_logs: Mapped[list["AuditLog"]] = relationship(
+        back_populates="user",
+        passive_deletes=True,
     )
