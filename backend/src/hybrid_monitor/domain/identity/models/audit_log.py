@@ -1,13 +1,16 @@
 """Audit log ORM model."""
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, JSON, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from hybrid_monitor.db import Base
+
+if TYPE_CHECKING:
+    from hybrid_monitor.domain.identity.models.user import User
 
 
 class AuditLog(Base):
@@ -28,4 +31,9 @@ class AuditLog(Base):
         DateTime(timezone=True),
         default=datetime.utcnow,
         nullable=False,
+    )
+
+    user: Mapped["User | None"] = relationship(
+        back_populates="audit_logs",
+        lazy="selectin",
     )
