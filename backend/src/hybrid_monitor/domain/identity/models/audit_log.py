@@ -26,7 +26,11 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(120), nullable=False)
     resource: Mapped[str | None] = mapped_column(String(120), nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
-    metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    details: Mapped[dict[str, Any] | None] = mapped_column(
+        "metadata",
+        JSON,
+        nullable=True,
+    )
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,
