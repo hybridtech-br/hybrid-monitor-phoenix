@@ -5,6 +5,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
+from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from hybrid_monitor.core.settings import get_settings
@@ -37,6 +38,17 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def run_migrations(connection: Connection) -> None:
+    """Configure and execute one transactional online migration run."""
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_type=True,
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
 async def run_migrations_online() -> None:
     """Run migrations using the asynchronous SQLAlchemy engine."""
 
@@ -47,15 +59,7 @@ async def run_migrations_online() -> None:
     )
 
     async with connectable.connect() as connection:
-        await connection.run_sync(
-            lambda sync_connection: context.configure(
-                connection=sync_connection,
-                target_metadata=target_metadata,
-                compare_type=True,
-            )
-        )
-
-        await connection.run_sync(lambda _: context.run_migrations())
+        await connection.run_sync(run_migrations)
 
     await connectable.dispose()
 
