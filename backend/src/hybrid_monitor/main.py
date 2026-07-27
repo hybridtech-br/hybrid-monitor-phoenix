@@ -11,6 +11,7 @@ from hybrid_monitor.api.exceptions import register_exception_handlers
 from hybrid_monitor.api.middleware import RequestContextMiddleware
 from hybrid_monitor.api.responses import success_response
 from hybrid_monitor.api.v1.router import router as api_v1_router
+from hybrid_monitor.core.database import dispose_database_engine
 from hybrid_monitor.core.logging import configure_logging
 from hybrid_monitor.core.settings import get_settings
 
@@ -28,8 +29,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         version=settings.app_version,
         environment=settings.environment,
     )
-    yield
-    logger.info("application_stopped", app=settings.app_name)
+    try:
+        yield
+    finally:
+        await dispose_database_engine()
+        logger.info("application_stopped", app=settings.app_name)
 
 
 app = FastAPI(
