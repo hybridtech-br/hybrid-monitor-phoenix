@@ -14,6 +14,8 @@ from hybrid_monitor.domain.identity.services import (
     InvalidRefreshTokenError,
 )
 
+TEST_JWT_SECRET = "authentication-test-secret-that-is-long-enough"
+
 
 class FakeUserRepository:
     def __init__(self, user: User | None) -> None:
@@ -69,7 +71,7 @@ def test_normalize_email_is_deterministic() -> None:
 async def test_authenticate_issues_access_and_refresh_tokens() -> None:
     user = build_user()
     repository = FakeUserRepository(user)
-    settings = Settings(environment="test", jwt_secret_key="authentication-test-secret")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     service = AuthenticationService(repository, settings)
 
     session = await service.authenticate(" Operator@HYBRID.Local ", "correct-password")
@@ -92,7 +94,7 @@ async def test_authenticate_issues_access_and_refresh_tokens() -> None:
 
 @pytest.mark.asyncio
 async def test_authenticate_rejects_unknown_user_and_wrong_password() -> None:
-    settings = Settings(environment="test", jwt_secret_key="authentication-test-secret")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
 
     with pytest.raises(InvalidCredentialsError):
         await AuthenticationService(FakeUserRepository(None), settings).authenticate(
@@ -111,7 +113,7 @@ async def test_authenticate_rejects_unknown_user_and_wrong_password() -> None:
 @pytest.mark.asyncio
 async def test_authenticate_rejects_inactive_user() -> None:
     user = build_user(active=False)
-    settings = Settings(environment="test", jwt_secret_key="authentication-test-secret")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
 
     with pytest.raises(InactiveUserError):
         await AuthenticationService(FakeUserRepository(user), settings).authenticate(
@@ -124,7 +126,7 @@ async def test_authenticate_rejects_inactive_user() -> None:
 async def test_refresh_rotates_tokens_for_an_active_user() -> None:
     user = build_user()
     repository = FakeUserRepository(user)
-    settings = Settings(environment="test", jwt_secret_key="authentication-test-secret")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     service = AuthenticationService(repository, settings)
     initial = await service.authenticate(user.email, "correct-password")
 
@@ -139,7 +141,7 @@ async def test_refresh_rotates_tokens_for_an_active_user() -> None:
 async def test_refresh_rejects_access_token() -> None:
     user = build_user()
     repository = FakeUserRepository(user)
-    settings = Settings(environment="test", jwt_secret_key="authentication-test-secret")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     service = AuthenticationService(repository, settings)
     initial = await service.authenticate(user.email, "correct-password")
 
