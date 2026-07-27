@@ -1,7 +1,7 @@
 """Audit log ORM model."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, Index, JSON, String
