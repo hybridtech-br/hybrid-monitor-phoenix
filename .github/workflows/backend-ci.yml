@@ -1,0 +1,115 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, types, migrations, and tests
+    runs-on: ubuntu-latest
+    env:
+      PHOENIX_DATABASE_URL: postgresql+asyncpg://phoenix:phoenix@localhost:5432/phoenix
+      PHOENIX_BOOTSTRAP_ADMIN_EMAIL: admin@micael-monitor.test
+      PHOENIX_BOOTSTRAP_ADMIN_NAME: CI Administrator
+      PHOENIX_BOOTSTRAP_ADMIN_PASSWORD: CI-only-bootstrap-password
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: phoenix
+          POSTGRES_USER: phoenix
+          POSTGRES_PASSWORD: phoenix
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U phoenix -d phoenix"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend and development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run Ruff
+        run: |
+          set -o pipefail
+          python -m ruff check . 2>&1 | tee ruff-report.txt
+
+      - name: Run mypy
+        run: |
+          set -o pipefail
+          python -m mypy 2>&1 | tee mypy-report.txt
+
+      - name: Validate Alembic migration chain offline
+        run: |
+          set -o pipefail
+          python -m alembic upgrade head --sql 2>&1 | tee alembic-report.txt
+
+      - name: Validate migrations against PostgreSQL
+        run: |
+          set -o pipefail
+          {
+            python -m alembic upgrade head
+            python -m alembic downgrade base
+            python -m alembic upgrade head
+          } 2>&1 | tee postgres-migration-report.txt
+
+      - name: Validate Identity bootstrap idempotency
+        run: |
+          set -o pipefail
+          {
+            python -m hybrid_monitor.cli.bootstrap_identity
+            python -m hybrid_monitor.cli.bootstrap_identity
+          } 2>&1 | tee identity-bootstrap-report.txt
+
+      - name: Run tests
+        env:
+          PHOENIX_RUN_POSTGRES_TESTS: "1"
+        run: |
+          set -o pipefail
+          python -m pytest 2>&1 | tee pytest-report.txt
+
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-quality-reports-${{ github.run_id }}
+          path: |
+            backend/ruff-report.txt
+            backend/mypy-report.txt
+            backend/alembic-report.txt
+            backend/postgres-migration-report.txt
+            backend/identity-bootstrap-report.txt
+            backend/pytest-report.txt
+          if-no-files-found: ignore
+          retention-days: 7

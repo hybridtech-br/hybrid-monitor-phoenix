@@ -1,12 +1,18 @@
-"""Application entrypoint for HYBRID Monitor Phoenix."""
+"""Application entrypoint for Micael Monitor."""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import AsyncIterator
+from typing import Any
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
+from hybrid_monitor.api.exceptions import register_exception_handlers
+from hybrid_monitor.api.middleware import RequestContextMiddleware
+from hybrid_monitor.api.responses import success_response
+from hybrid_monitor.api.v1.router import router as api_v1_router
+from hybrid_monitor.core.database import dispose_database_engine
 from hybrid_monitor.core.logging import configure_logging
 from hybrid_monitor.core.settings import get_settings
 
@@ -24,16 +30,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         version=settings.app_version,
         environment=settings.environment,
     )
-    yield
-    logger.info("application_stopped", app=settings.app_name)
+    try:
+        yield
+    finally:
+        await dispose_database_engine()
+        logger.info("application_stopped", app=settings.app_name)
 
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description=(
-        "Core API da plataforma de Inteligencia Situacional HYBRID Monitor, "
-        "integrante da familia Micael."
+        "Core API da plataforma de inteligência situacional Micael Monitor, "
+        "integrante da família Micael."
     ),
     docs_url="/docs",
     redoc_url="/redoc",
@@ -41,33 +50,46 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(RequestContextMiddleware)
+register_exception_handlers(app)
+app.include_router(api_v1_router, prefix=settings.api_prefix)
+
 
 @app.get("/health", tags=["system"])
-async def health() -> dict[str, str]:
+async def health(request: Request) -> dict[str, Any]:
     """Return service health information."""
-    return {
-        "status": "ok",
-        "service": settings.app_name,
-        "timestamp": datetime.now(UTC).isoformat(),
-    }
+    return success_response(
+        request,
+        {
+            "status": "ok",
+            "service": settings.app_name,
+            "timestamp": datetime.now(UTC).isoformat(),
+        },
+    )
 
 
 @app.get("/version", tags=["system"])
-async def version() -> dict[str, str]:
+async def version(request: Request) -> dict[str, Any]:
     """Return application version metadata."""
-    return {
-        "name": settings.app_name,
-        "version": settings.app_version,
-        "environment": settings.environment,
-    }
+    return success_response(
+        request,
+        {
+            "name": settings.app_name,
+            "version": settings.app_version,
+            "environment": settings.environment,
+        },
+    )
 
 
 @app.get("/runtime", tags=["system"])
-async def runtime() -> dict[str, str | int]:
+async def runtime(request: Request) -> dict[str, Any]:
     """Return non-sensitive runtime configuration."""
-    return {
-        "api_prefix": settings.api_prefix,
-        "host": settings.host,
-        "port": settings.port,
-        "log_level": settings.log_level,
-    }
+    return success_response(
+        request,
+        {
+            "api_prefix": settings.api_prefix,
+            "host": settings.host,
+            "port": settings.port,
+            "log_level": settings.log_level,
+        },
+    )
