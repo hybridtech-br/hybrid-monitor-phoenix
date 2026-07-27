@@ -185,6 +185,6 @@ def decode_token(
 
     if expected_type is not None and claims.token_type is not expected_type:
         raise InvalidSecurityTokenError(
-            f"Expected a {expected_type.value} token, received {claims.token_type.value}"
+            f"Expected token type {expected_type.value}, received {claims.token_type.value}"
         )
     return claims
