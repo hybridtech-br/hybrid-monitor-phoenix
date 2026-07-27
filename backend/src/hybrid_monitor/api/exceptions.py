@@ -1,9 +1,10 @@
-"""Global exception handlers for the HYBRID Monitor API."""
+"""Global exception handlers for the Micael Monitor API."""
 
 from typing import Any
 
 import structlog
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -17,18 +18,39 @@ def _http_error_code(status_code: int) -> str:
     return f"http_{status_code}"
 
 
+def _json_error_response(
+    request: Request,
+    *,
+    status_code: int,
+    code: str,
+    message: str,
+    details: Any | None = None,
+    headers: dict[str, str] | None = None,
+) -> JSONResponse:
+    """Build a JSON-safe response using the shared API error envelope."""
+    payload = error_response(
+        request,
+        code=code,
+        message=message,
+        details=details,
+    )
+    return JSONResponse(
+        status_code=status_code,
+        content=jsonable_encoder(payload),
+        headers=headers,
+    )
+
+
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Serialize FastAPI HTTP exceptions using the standard API envelope."""
     message = exc.detail if isinstance(exc.detail, str) else "HTTP request failed"
     details: Any | None = None if isinstance(exc.detail, str) else exc.detail
-    return JSONResponse(
+    return _json_error_response(
+        request,
         status_code=exc.status_code,
-        content=error_response(
-            request,
-            code=_http_error_code(exc.status_code),
-            message=message,
-            details=details,
-        ),
+        code=_http_error_code(exc.status_code),
+        message=message,
+        details=details,
         headers=exc.headers,
     )
 
@@ -38,14 +60,12 @@ async def validation_exception_handler(
     exc: RequestValidationError,
 ) -> JSONResponse:
     """Serialize request validation errors using the standard API envelope."""
-    return JSONResponse(
+    return _json_error_response(
+        request,
         status_code=422,
-        content=error_response(
-            request,
-            code="request_validation_error",
-            message="Request validation failed",
-            details=exc.errors(),
-        ),
+        code="request_validation_error",
+        message="Request validation failed",
+        details=exc.errors(),
     )
 
 
@@ -58,13 +78,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
         path=request.url.path,
         exception_type=type(exc).__name__,
     )
-    return JSONResponse(
+    return _json_error_response(
+        request,
         status_code=500,
-        content=error_response(
-            request,
-            code="internal_server_error",
-            message="An unexpected error occurred",
-        ),
+        code="internal_server_error",
+        message="An unexpected error occurred",
     )
 
 
