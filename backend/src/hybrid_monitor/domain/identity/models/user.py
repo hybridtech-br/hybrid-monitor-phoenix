@@ -13,6 +13,7 @@ from hybrid_monitor.domain.identity.models.association import user_roles
 
 if TYPE_CHECKING:
     from hybrid_monitor.domain.identity.models.audit_log import AuditLog
+    from hybrid_monitor.domain.identity.models.auth_session import AuthSession
     from hybrid_monitor.domain.identity.models.role import Role
 
 
@@ -45,5 +46,10 @@ class User(Base):
     )
     audit_logs: Mapped[list["AuditLog"]] = relationship(
         back_populates="user",
+        passive_deletes=True,
+    )
+    auth_sessions: Mapped[list["AuthSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
         passive_deletes=True,
     )
