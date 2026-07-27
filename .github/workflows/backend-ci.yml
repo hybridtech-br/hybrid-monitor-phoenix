@@ -21,6 +21,22 @@ jobs:
   quality:
     name: Lint, types, migrations, and tests
     runs-on: ubuntu-latest
+    env:
+      PHOENIX_DATABASE_URL: postgresql+asyncpg://phoenix:phoenix@localhost:5432/phoenix
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: phoenix
+          POSTGRES_USER: phoenix
+          POSTGRES_PASSWORD: phoenix
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U phoenix -d phoenix"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
@@ -56,6 +72,15 @@ jobs:
           set -o pipefail
           python -m alembic upgrade head --sql 2>&1 | tee alembic-report.txt
 
+      - name: Validate migrations against PostgreSQL
+        run: |
+          set -o pipefail
+          {
+            python -m alembic upgrade head
+            python -m alembic downgrade base
+            python -m alembic upgrade head
+          } 2>&1 | tee postgres-migration-report.txt
+
       - name: Run tests
         run: |
           set -o pipefail
@@ -70,6 +95,7 @@ jobs:
             backend/ruff-report.txt
             backend/mypy-report.txt
             backend/alembic-report.txt
+            backend/postgres-migration-report.txt
             backend/pytest-report.txt
           if-no-files-found: ignore
           retention-days: 7
