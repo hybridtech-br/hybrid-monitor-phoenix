@@ -81,6 +81,18 @@ jobs:
             python -m alembic upgrade head
           } 2>&1 | tee postgres-migration-report.txt
 
+      - name: Validate Identity bootstrap idempotency
+        env:
+          PHOENIX_BOOTSTRAP_ADMIN_EMAIL: admin@micael-monitor.test
+          PHOENIX_BOOTSTRAP_ADMIN_NAME: CI Administrator
+          PHOENIX_BOOTSTRAP_ADMIN_PASSWORD: CI-only-bootstrap-password
+        run: |
+          set -o pipefail
+          {
+            python -m hybrid_monitor.cli.bootstrap_identity
+            python -m hybrid_monitor.cli.bootstrap_identity
+          } 2>&1 | tee identity-bootstrap-report.txt
+
       - name: Run tests
         run: |
           set -o pipefail
@@ -96,6 +108,7 @@ jobs:
             backend/mypy-report.txt
             backend/alembic-report.txt
             backend/postgres-migration-report.txt
+            backend/identity-bootstrap-report.txt
             backend/pytest-report.txt
           if-no-files-found: ignore
           retention-days: 7
