@@ -7,9 +7,9 @@ from uuid import UUID, uuid4
 import jwt
 from jwt import ExpiredSignatureError
 from jwt import InvalidTokenError as PyJWTInvalidTokenError
-from pydantic import BaseModel, ValidationError
 from pwdlib import PasswordHash
 from pwdlib.exceptions import UnknownHashError
+from pydantic import BaseModel, ValidationError
 
 from hybrid_monitor.core.settings import Settings, get_settings
 from hybrid_monitor.core.time import utc_now
