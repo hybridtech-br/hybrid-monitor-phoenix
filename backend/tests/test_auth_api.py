@@ -14,6 +14,7 @@ from hybrid_monitor.domain.identity.models import Permission, Role, User
 from hybrid_monitor.domain.identity.services import AuthenticationService
 from hybrid_monitor.main import app
 
+TEST_JWT_SECRET = "authentication-api-secret-that-is-long-enough"
 client = TestClient(app)
 
 
@@ -52,7 +53,7 @@ def build_user() -> User:
 
 def test_login_returns_standard_session_envelope() -> None:
     user = build_user()
-    settings = Settings(environment="test", jwt_secret_key="authentication-api-secret")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     service = AuthenticationService(FakeUserRepository(user), settings)
     app.dependency_overrides[get_authentication_service] = lambda: service
     try:
@@ -74,7 +75,7 @@ def test_login_returns_standard_session_envelope() -> None:
 
 
 def test_login_rejects_invalid_credentials_without_account_disclosure() -> None:
-    settings = Settings(environment="test", jwt_secret_key="authentication-api-secret")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     service = AuthenticationService(FakeUserRepository(None), settings)
     app.dependency_overrides[get_authentication_service] = lambda: service
     try:
