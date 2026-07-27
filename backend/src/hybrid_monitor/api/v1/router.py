@@ -6,10 +6,12 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from hybrid_monitor.api.responses import success_response
+from hybrid_monitor.api.v1.auth import router as auth_router
 from hybrid_monitor.core.settings import get_settings
 
 settings = get_settings()
 router = APIRouter()
+router.include_router(auth_router)
 
 
 @router.get("/health", tags=["system"])
