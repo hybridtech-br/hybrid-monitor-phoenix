@@ -32,15 +32,11 @@ class SQLAlchemyUserRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    @staticmethod
-    def _authorization_options() -> tuple[object, ...]:
-        return (selectinload(User.roles).selectinload(Role.permissions),)
-
     async def get_by_id(self, user_id: UUID) -> User | None:
         statement = (
             select(User)
             .where(User.id == user_id)
-            .options(*self._authorization_options())
+            .options(selectinload(User.roles).selectinload(Role.permissions))
         )
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
@@ -49,7 +45,7 @@ class SQLAlchemyUserRepository:
         statement = (
             select(User)
             .where(User.email == email)
-            .options(*self._authorization_options())
+            .options(selectinload(User.roles).selectinload(Role.permissions))
         )
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
