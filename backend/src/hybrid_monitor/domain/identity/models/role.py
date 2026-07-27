@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from hybrid_monitor.core.time import utc_now
 from hybrid_monitor.db import Base
 from hybrid_monitor.domain.identity.models.association import role_permissions, user_roles
 
@@ -25,7 +26,7 @@ class Role(Base):
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
     )
 
