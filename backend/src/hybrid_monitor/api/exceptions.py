@@ -1,5 +1,6 @@
 """Global exception handlers for the Micael Monitor API."""
 
+from collections.abc import Mapping
 from typing import Any
 
 import structlog
@@ -26,7 +27,7 @@ def _json_error_response(
     code: str,
     message: str,
     details: Any | None = None,
-    headers: dict[str, str] | None = None,
+    headers: Mapping[str, str] | None = None,
 ) -> JSONResponse:
     """Build a JSON-safe response using the shared API error envelope."""
     payload = error_response(
@@ -42,11 +43,11 @@ def _json_error_response(
     )
 
 
-async def http_exception_handler(
-    request: Request,
-    exc: StarletteHTTPException,
-) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Serialize HTTP exceptions using the standard API envelope."""
+    if not isinstance(exc, StarletteHTTPException):
+        raise TypeError("Expected a Starlette HTTPException")
+
     message = exc.detail if isinstance(exc.detail, str) else "HTTP request failed"
     details: Any | None = None if isinstance(exc.detail, str) else exc.detail
     return _json_error_response(
@@ -59,11 +60,11 @@ async def http_exception_handler(
     )
 
 
-async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError,
-) -> JSONResponse:
+async def validation_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Serialize request validation errors using the standard API envelope."""
+    if not isinstance(exc, RequestValidationError):
+        raise TypeError("Expected a RequestValidationError")
+
     return _json_error_response(
         request,
         status_code=422,
