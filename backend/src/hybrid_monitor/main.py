@@ -1,8 +1,9 @@
 """Application entrypoint for Micael Monitor."""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import Any, AsyncIterator
+from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request
