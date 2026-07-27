@@ -1,4 +1,4 @@
-"""Centralized application settings for HYBRID Monitor Phoenix."""
+"""Centralized application settings for Micael Monitor."""
 
 from functools import lru_cache
 
@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Runtime configuration loaded from environment variables and optional .env files."""
 
-    app_name: str = "HYBRID Monitor Phoenix"
+    app_name: str = "Micael Monitor"
     app_version: str = "0.1.0"
     environment: str = "development"
     api_prefix: str = "/api/v1"
