@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from hybrid_monitor.core.time import utc_now
 from hybrid_monitor.db import Base
 
 if TYPE_CHECKING:
@@ -33,7 +34,7 @@ class AuditLog(Base):
     )
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
     )
 
