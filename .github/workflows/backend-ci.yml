@@ -23,6 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PHOENIX_DATABASE_URL: postgresql+asyncpg://phoenix:phoenix@localhost:5432/phoenix
+      PHOENIX_BOOTSTRAP_ADMIN_EMAIL: admin@micael-monitor.test
+      PHOENIX_BOOTSTRAP_ADMIN_NAME: CI Administrator
+      PHOENIX_BOOTSTRAP_ADMIN_PASSWORD: CI-only-bootstrap-password
     services:
       postgres:
         image: postgres:16-alpine
@@ -82,10 +85,6 @@ jobs:
           } 2>&1 | tee postgres-migration-report.txt
 
       - name: Validate Identity bootstrap idempotency
-        env:
-          PHOENIX_BOOTSTRAP_ADMIN_EMAIL: admin@micael-monitor.test
-          PHOENIX_BOOTSTRAP_ADMIN_NAME: CI Administrator
-          PHOENIX_BOOTSTRAP_ADMIN_PASSWORD: CI-only-bootstrap-password
         run: |
           set -o pipefail
           {
@@ -94,6 +93,8 @@ jobs:
           } 2>&1 | tee identity-bootstrap-report.txt
 
       - name: Run tests
+        env:
+          PHOENIX_RUN_POSTGRES_TESTS: "1"
         run: |
           set -o pipefail
           python -m pytest 2>&1 | tee pytest-report.txt
