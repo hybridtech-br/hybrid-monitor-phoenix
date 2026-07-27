@@ -5,7 +5,10 @@ from uuid import UUID
 from pydantic import BaseModel, Field, SecretStr, field_validator
 
 from hybrid_monitor.domain.identity.models import User
-from hybrid_monitor.domain.identity.services.authentication import TokenPair
+from hybrid_monitor.domain.identity.services.authentication import (
+    AuthenticatedSession,
+    TokenPair,
+)
 
 
 class LoginRequest(BaseModel):
@@ -71,4 +74,18 @@ class CurrentUserResponse(BaseModel):
             is_active=user.is_active,
             roles=sorted(role.name for role in user.roles),
             permissions=sorted(permissions),
+        )
+
+
+class AuthenticatedSessionResponse(BaseModel):
+    """Safe login/refresh payload returned inside the API success envelope."""
+
+    user: CurrentUserResponse
+    tokens: TokenPairResponse
+
+    @classmethod
+    def from_session(cls, session: AuthenticatedSession) -> "AuthenticatedSessionResponse":
+        return cls(
+            user=CurrentUserResponse.from_user(session.user),
+            tokens=TokenPairResponse.from_pair(session.tokens),
         )
