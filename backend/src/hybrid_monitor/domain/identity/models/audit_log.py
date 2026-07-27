@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, JSON, String
+from sqlalchemy import DateTime, ForeignKey, Index, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from hybrid_monitor.core.time import utc_now
@@ -18,6 +18,10 @@ class AuditLog(Base):
     """Security and activity audit record."""
 
     __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_user_timestamp", "user_id", "timestamp"),
+        Index("ix_audit_logs_action_timestamp", "action", "timestamp"),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     user_id: Mapped[UUID | None] = mapped_column(
