@@ -7,8 +7,8 @@ Create Date: 2026-07-23
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision: str = "20260723_0001"
 down_revision: str | None = None
@@ -28,8 +28,7 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("email"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_users")),
     )
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
 
@@ -39,8 +38,8 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=80), nullable=False),
         sa.Column("description", sa.String(length=255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_roles")),
+        sa.UniqueConstraint("name", name=op.f("uq_roles_name")),
     )
 
     op.create_table(
@@ -49,8 +48,7 @@ def upgrade() -> None:
         sa.Column("code", sa.String(length=120), nullable=False),
         sa.Column("description", sa.String(length=255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("code"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_permissions")),
     )
     op.create_index(
         op.f("ix_permissions_code"),
@@ -63,9 +61,23 @@ def upgrade() -> None:
         "user_roles",
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("role_id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("user_id", "role_id"),
+        sa.ForeignKeyConstraint(
+            ["role_id"],
+            ["roles.id"],
+            name=op.f("fk_user_roles_role_id_roles"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+            name=op.f("fk_user_roles_user_id_users"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint(
+            "user_id",
+            "role_id",
+            name=op.f("pk_user_roles"),
+        ),
     )
 
     op.create_table(
@@ -75,10 +87,20 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["permission_id"],
             ["permissions.id"],
+            name=op.f("fk_role_permissions_permission_id_permissions"),
             ondelete="CASCADE",
         ),
-        sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("role_id", "permission_id"),
+        sa.ForeignKeyConstraint(
+            ["role_id"],
+            ["roles.id"],
+            name=op.f("fk_role_permissions_role_id_roles"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint(
+            "role_id",
+            "permission_id",
+            name=op.f("pk_role_permissions"),
+        ),
     )
 
     op.create_table(
@@ -90,8 +112,13 @@ def upgrade() -> None:
         sa.Column("ip_address", sa.String(length=45), nullable=True),
         sa.Column("metadata", sa.JSON(), nullable=True),
         sa.Column("timestamp", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+            name=op.f("fk_audit_logs_user_id_users"),
+            ondelete="SET NULL",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_audit_logs")),
     )
     op.create_index(
         "ix_audit_logs_user_timestamp",
