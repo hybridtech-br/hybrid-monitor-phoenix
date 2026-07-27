@@ -42,13 +42,34 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Run Ruff
-        run: python -m ruff check .
+        run: |
+          set -o pipefail
+          python -m ruff check . 2>&1 | tee ruff-report.txt
 
       - name: Run mypy
-        run: python -m mypy
+        run: |
+          set -o pipefail
+          python -m mypy 2>&1 | tee mypy-report.txt
 
       - name: Validate Alembic migration chain offline
-        run: python -m alembic upgrade head --sql > /tmp/micael-monitor-schema.sql
+        run: |
+          set -o pipefail
+          python -m alembic upgrade head --sql 2>&1 | tee alembic-report.txt
 
       - name: Run tests
-        run: python -m pytest
+        run: |
+          set -o pipefail
+          python -m pytest 2>&1 | tee pytest-report.txt
+
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-quality-reports-${{ github.run_id }}
+          path: |
+            backend/ruff-report.txt
+            backend/mypy-report.txt
+            backend/alembic-report.txt
+            backend/pytest-report.txt
+          if-no-files-found: ignore
+          retention-days: 7
