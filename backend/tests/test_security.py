@@ -21,6 +21,8 @@ from hybrid_monitor.core.security import (
 from hybrid_monitor.core.settings import Settings
 from hybrid_monitor.core.time import utc_now
 
+TEST_JWT_SECRET = "test-secret-key-that-is-at-least-32-bytes-long"
+
 
 def test_password_hash_is_salted_and_verifiable() -> None:
     password = "Micael-Monitor-Test-Password"
@@ -39,7 +41,7 @@ def test_password_verification_rejects_unknown_hashes_safely() -> None:
 
 
 def test_access_token_contains_required_claims() -> None:
-    settings = Settings(environment="test", jwt_secret_key="test-secret-key")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     subject = uuid4()
 
     token = create_access_token(subject, settings=settings)
@@ -53,15 +55,15 @@ def test_access_token_contains_required_claims() -> None:
 
 
 def test_refresh_token_cannot_be_used_as_access_token() -> None:
-    settings = Settings(environment="test", jwt_secret_key="test-secret-key")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     token = create_refresh_token(uuid4(), settings=settings)
 
-    with pytest.raises(InvalidSecurityTokenError, match="Expected an access token"):
+    with pytest.raises(InvalidSecurityTokenError, match="Expected token type access"):
         decode_token(token, expected_type=TokenType.ACCESS, settings=settings)
 
 
 def test_expired_token_is_reported_separately() -> None:
-    settings = Settings(environment="test", jwt_secret_key="test-secret-key")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     token = create_token(
         uuid4(),
         TokenType.ACCESS,
@@ -75,13 +77,18 @@ def test_expired_token_is_reported_separately() -> None:
 
 
 def test_tampered_token_is_rejected() -> None:
-    settings = Settings(environment="test", jwt_secret_key="test-secret-key")
+    settings = Settings(environment="test", jwt_secret_key=TEST_JWT_SECRET)
     token = create_access_token(uuid4(), settings=settings)
     replacement = "a" if token[-1] != "a" else "b"
     tampered = f"{token[:-1]}{replacement}"
 
     with pytest.raises(InvalidSecurityTokenError):
         decode_token(tampered, settings=settings)
+
+
+def test_weak_hmac_secret_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="at least 32 bytes"):
+        Settings(environment="test", jwt_secret_key="too-short")
 
 
 def test_production_rejects_repository_development_secret() -> None:
