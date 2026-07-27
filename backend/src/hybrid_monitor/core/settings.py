@@ -7,6 +7,7 @@ from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEVELOPMENT_JWT_SECRET = "development-only-change-before-production"
+MINIMUM_HMAC_SECRET_BYTES = 32
 
 
 class Settings(BaseSettings):
@@ -41,10 +42,16 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def reject_development_secret_outside_safe_environments(self) -> Self:
-        """Prevent production startup with the repository's development-only JWT secret."""
+    def validate_jwt_secret(self) -> Self:
+        """Reject weak HMAC secrets and prevent default-secret use outside safe environments."""
+        secret = self.jwt_secret_key.get_secret_value()
+        if len(secret.encode("utf-8")) < MINIMUM_HMAC_SECRET_BYTES:
+            raise ValueError(
+                f"PHOENIX_JWT_SECRET_KEY must contain at least {MINIMUM_HMAC_SECRET_BYTES} bytes"
+            )
+
         safe_environments = {"development", "test"}
-        uses_default_secret = self.jwt_secret_key.get_secret_value() == DEVELOPMENT_JWT_SECRET
+        uses_default_secret = secret == DEVELOPMENT_JWT_SECRET
         if self.environment.lower() not in safe_environments and uses_default_secret:
             raise ValueError("PHOENIX_JWT_SECRET_KEY must be configured outside development/test")
         return self
