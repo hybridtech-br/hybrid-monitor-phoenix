@@ -1,11 +1,8 @@
 """Identity many-to-many association tables."""
 
-from uuid import UUID
-
-from sqlalchemy import ForeignKey, Table, Column
+from sqlalchemy import Column, ForeignKey, Table
 
 from hybrid_monitor.db import Base
-
 
 user_roles = Table(
     "user_roles",
@@ -13,7 +10,6 @@ user_roles = Table(
     Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
     Column("role_id", ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
 )
-
 
 role_permissions = Table(
     "role_permissions",
