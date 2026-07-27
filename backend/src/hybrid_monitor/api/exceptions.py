@@ -3,10 +3,11 @@
 from typing import Any
 
 import structlog
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from hybrid_monitor.api.responses import error_response
 
@@ -41,8 +42,11 @@ def _json_error_response(
     )
 
 
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    """Serialize FastAPI HTTP exceptions using the standard API envelope."""
+async def http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+) -> JSONResponse:
+    """Serialize HTTP exceptions using the standard API envelope."""
     message = exc.detail if isinstance(exc.detail, str) else "HTTP request failed"
     details: Any | None = None if isinstance(exc.detail, str) else exc.detail
     return _json_error_response(
@@ -88,6 +92,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all global exception handlers on the application."""
-    app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)
